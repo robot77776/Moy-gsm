@@ -27,16 +27,14 @@ main{max-width:760px;margin:auto;padding:0 14px}
 input,select{width:100%;height:56px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);color:var(--text);padding:0 14px;font-size:18px;outline:none;min-width:0}
 input:focus,select:focus{border-color:var(--blue2);box-shadow:0 0 0 2px #3289e633}
 input::placeholder{color:#8494aa}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-.field{min-width:0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.field{min-width:0;width:100%}
 .field.full{grid-column:1/-1}
+#shiftDate{display:block;width:100%;max-width:100%;min-width:0;padding:0 8px;font-size:16px}
 .row{display:flex;gap:10px;align-items:center}
 .between{justify-content:space-between}
-.car-select{display:grid;grid-template-columns:104px 1fr 24px;gap:13px;align-items:center}
-.car-art{height:82px;border-radius:13px;background:linear-gradient(145deg,#dfe8f0,#9eacbb);display:grid;place-items:center;overflow:hidden}
-.car-art svg{width:100%;height:100%}
-.car-art img{width:100%;height:100%;object-fit:cover}
-.car-name{font-size:18px;font-weight:800}
+.car-select{display:grid;grid-template-columns:minmax(0,1fr) 24px;gap:10px;align-items:center}
+.car-name{font-size:18px;font-weight:800;overflow-wrap:anywhere}
 .hint{color:var(--muted);font-size:12px;margin-top:5px}
 .pill{display:inline-block;background:#263e5b;color:#9bd0ff;border-radius:30px;padding:6px 10px;font-size:12px;font-weight:700}
 .seasons{display:grid;grid-template-columns:1fr 1fr;gap:9px}
@@ -57,9 +55,8 @@ nav button{background:none;border:0;color:#91a2b8;font-size:11px;font-weight:650
 nav button .ico{font-size:20px}
 nav button.active{color:var(--blue2)}
 .vehicle-card,.history-card{background:var(--panel);border:1px solid #ffffff10;border-radius:18px;padding:12px;margin:10px 0}
-.vehicle-card .car-art{height:145px;margin-bottom:12px}
 .vehicle-actions{display:flex;gap:8px;margin-top:12px}
-.vehicle-actions button{flex:1}
+.vehicle-actions button{flex:1;min-width:0}
 .small{font-size:12px;color:var(--muted)}
 .modal{position:fixed;inset:0;background:#0009;display:none;align-items:flex-end;z-index:30}
 .modal.show{display:flex}
@@ -71,8 +68,16 @@ nav button.active{color:var(--blue2)}
 .history-stat div{background:#24354b;border-radius:12px;padding:10px}
 .history-stat b{display:block;font-size:18px;margin-top:4px}
 .empty{text-align:center;color:var(--muted);padding:35px 15px}
-.file-label{display:block;text-align:center;padding:12px;border:1px dashed #61748e;border-radius:12px;color:#b9d8f7;margin-top:8px}
-@media(min-width:600px){main{padding:0 22px}.card{padding:20px}.vehicle-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}}
+@media(max-width:380px){
+main{padding:0 10px}
+.card{padding:13px}
+#shiftDate{font-size:14px;padding:0 5px}
+}
+@media(min-width:600px){
+main{padding:0 22px}
+.card{padding:20px}
+.vehicle-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+}
 </style>
 </head>
 <body>
@@ -88,8 +93,10 @@ nav button.active{color:var(--blue2)}
 <div class="card">
 <div class="section-title">Автомобиль</div>
 <div class="car-select" id="carSelect" role="button" tabindex="0" onclick="openCarPicker()">
-<div class="car-art" id="selectedCarArt"></div>
-<div><div class="car-name" id="selectedCarName">Sollers Atlant</div><div class="hint">Нажми, чтобы выбрать автомобиль</div></div>
+<div>
+<div class="car-name" id="selectedCarName">Sollers Atlant</div>
+<div class="hint">Нажми, чтобы выбрать автомобиль</div>
+</div>
 <div>⌄</div>
 </div>
 <div style="height:14px"></div>
@@ -103,7 +110,10 @@ nav button.active{color:var(--blue2)}
 <div class="card">
 <div class="section-title">Данные смены</div>
 <div class="grid">
-<div class="field full"><label class="label" for="shiftDate">Дата смены</label><input id="shiftDate" type="date"></div>
+<div class="field full">
+<label class="label" for="shiftDate">Дата смены</label>
+<input id="shiftDate" type="date">
+</div>
 <div class="field"><label class="label" for="fuelStart">Остаток до смены, л</label><input id="fuelStart" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,0"></div>
 <div class="field"><label class="label" for="fuelAdded">Заправлено, л</label><input id="fuelAdded" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,0"></div>
 <div class="field"><label class="label" for="odoStart">Одометр до смены, км</label><input id="odoStart" type="number" inputmode="numeric" step="1" min="0" placeholder="0"></div>
@@ -176,21 +186,6 @@ nav button.active{color:var(--blue2)}
 <script>
 const STORE='moyGsm_v1';
 
-const svgVan=(kind='van')=>`<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg">
-<ellipse cx="130" cy="108" rx="102" ry="8" fill="#667789" opacity=".35"/>
-<path d="M28 87 L36 51 Q39 42 54 40 L157 40 Q169 40 178 51 L206 62 L226 85 L226 99 L27 99Z" fill="#f8fafc" stroke="#697b8c" stroke-width="2"/>
-<path d="M43 53 Q46 47 57 47 L153 47 L153 82 L37 82Z" fill="#b9d3e5"/>
-<path d="M162 48 L175 54 L196 63 L208 82 L162 82Z" fill="#b9d3e5"/>
-<path d="M27 86 L226 86 L226 99 L27 99Z" fill="#28384b"/>
-<path d="M30 86 L44 86 L44 98 L30 98Z" fill="#f4f6f8"/>
-<rect x="207" y="83" width="14" height="7" rx="2" fill="#f7e4b3"/>
-<circle cx="72" cy="99" r="16" fill="#182638"/>
-<circle cx="72" cy="99" r="7" fill="#aeb9c5"/>
-<circle cx="187" cy="99" r="16" fill="#182638"/>
-<circle cx="187" cy="99" r="7" fill="#aeb9c5"/>
-<text x="104" y="72" font-size="10" fill="#52677c" text-anchor="middle" font-weight="bold">${kind==='sollers'?'SOLLERS':kind==='ford'?'FORD':'ГАЗ'}</text>
-</svg>`;
-
 const defaultData={
 vehicles:[
 {id:'sollers',name:'Sollers Atlant',kind:'sollers',idle:0.9,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''},
@@ -245,7 +240,7 @@ return document.getElementById(id)?.value||'';
 }
 
 function fmt(n){
-return Number.isFinite(n)?n.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+return Number.isFinite(n)?n.toLocaleString('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:2}):'—';
 }
 
 function roundLitres(n){
@@ -254,12 +249,6 @@ return Math.floor(n+0.5);
 
 function currentCar(){
 return data.vehicles.find(v=>v.id===data.selectedVehicle)||data.vehicles[0];
-}
-
-function carArt(v){
-return v.photo
-?`<img src="${v.photo}" onerror="this.outerHTML='${svgVan(v.kind).replace(/'/g,"&#39;")}'">`
-:svgVan(v.kind);
 }
 
 function todayString(){
@@ -308,7 +297,6 @@ function updateCarDisplay(){
 const v=currentCar();
 if(!v)return;
 document.getElementById('selectedCarName').textContent=v.name;
-document.getElementById('selectedCarArt').innerHTML=carArt(v);
 document.getElementById('summerBtn').classList.toggle('active',data.season==='summer');
 document.getElementById('winterBtn').classList.toggle('active',data.season==='winter');
 }
@@ -327,11 +315,7 @@ openModal(`
 <h2>Выбрать автомобиль</h2>
 ${data.vehicles.map(v=>`
 <div class="vehicle-card" onclick="chooseCar('${v.id}');closeModal()">
-<div class="car-select">
-<div class="car-art">${carArt(v)}</div>
 <div class="car-name">${esc(v.name)}</div>
-<div>›</div>
-</div>
 </div>`).join('')}
 <button class="secondary" style="width:100%;margin-top:8px" onclick="closeModal()">Отмена</button>
 `);
@@ -389,29 +373,21 @@ const v=currentCar();
 if(!v)return {};
 
 const n=v.norms[data.season]||{city:'',road:''};
-
 const cityKm=num('cityKm');
 const roadKm=num('roadKm');
 const odoA=val('odoStart')===''?null:num('odoStart');
 const odoB=val('odoEnd')===''?null:num('odoEnd');
-
 const totalKm=odoA!==null&&odoB!==null?odoB-odoA:null;
-
 const cityRate=parseFloat(n.city)||0;
 const roadRate=parseFloat(n.road)||0;
 const idleRate=parseFloat(v.idle??0.9);
-
 const cityRaw=cityKm*cityRate/100;
 const roadRaw=roadKm*roadRate/100;
-
 const cityUse=roundLitres(cityRaw);
 const roadUse=roundLitres(roadRaw);
-
 const idleHours=num('idleHours')+num('idleMinutes')/60;
 const idleUse=idleHours*idleRate;
-
 const total=cityUse+roadUse+idleUse;
-
 const enough=val('fuelStart')!==''&&val('fuelAdded')!=='';
 const end=enough?num('fuelStart')+num('fuelAdded')-total:null;
 
@@ -451,31 +427,25 @@ if(!val('shiftDate')){
 alert('Укажи дату смены.');
 return null;
 }
-
 if(val('fuelStart')===''||val('fuelAdded')===''){
 alert('Укажи начальный остаток и количество заправленного топлива.');
 return null;
 }
-
 if(num('fuelStart')<0||num('fuelAdded')<0){
 alert('Количество топлива не может быть отрицательным.');
 return null;
 }
-
 if(val('odoStart')!==''&&val('odoEnd')!==''&&c.totalKm<0){
 alert('Конечный одометр не может быть меньше начального.');
 return null;
 }
-
 if(num('idleMinutes')>59){
 alert('Минуты простоя не могут превышать 59.');
 return null;
 }
-
 if(c.totalKm!==null&&Math.abs(c.totalKm-(c.cityKm+c.roadKm))>0.01){
 if(!confirm('Пробег по одометру не совпадает с суммой городского и загородного. Всё равно сохранить?'))return null;
 }
-
 if(!n.city||!n.road){
 if(!confirm('Не все нормы расхода заполнены. Сохранить смену с текущим расчётом?'))return null;
 }
@@ -543,7 +513,6 @@ saveDraft();
 function renderCars(){
 document.getElementById('vehicleList').innerHTML=data.vehicles.map(v=>`
 <div class="vehicle-card">
-<div class="car-art">${carArt(v)}</div>
 <div class="row between">
 <div class="car-name">${esc(v.name)}</div>
 <span class="pill">2 сезона</span>
@@ -580,9 +549,6 @@ openModal(`
 <label class="label">Простой, л/час</label>
 <input id="vIdle" type="number" step=".01" min="0" value="${v.idle??0.9}">
 </div>
-<label class="file-label">📷 Добавить / заменить фотографию
-<input id="vPhoto" type="file" accept="image/*" style="display:none" onchange="loadVehiclePhoto('${id}',this)">
-</label>
 <button class="primary" onclick="saveVehicle('${id}')">Сохранить настройки</button>
 <button class="secondary" style="width:100%" onclick="closeModal()">Отмена</button>
 `);
@@ -591,7 +557,6 @@ openModal(`
 function saveVehicle(id){
 const v=data.vehicles.find(x=>x.id===id);
 if(!v)return;
-
 const values=['sCity','sRoad','wCity','wRoad','vIdle'];
 for(const key of values){
 const el=document.getElementById(key);
@@ -600,7 +565,6 @@ alert('Нормы расхода не могут быть отрицательн
 return;
 }
 }
-
 v.norms.summer={
 city:document.getElementById('sCity').value,
 road:document.getElementById('sRoad').value
@@ -610,30 +574,11 @@ city:document.getElementById('wCity').value,
 road:document.getElementById('wRoad').value
 };
 v.idle=parseFloat(document.getElementById('vIdle').value)||0;
-
 persist();
 closeModal();
 renderCars();
 updateCarDisplay();
 calculate();
-}
-
-function loadVehiclePhoto(id,input){
-const file=input.files[0];
-if(!file)return;
-if(file.size>4*1024*1024){
-alert('Фотография слишком большая. Выбери файл до 4 МБ.');
-return;
-}
-const r=new FileReader();
-r.onload=()=>{
-const v=data.vehicles.find(x=>x.id===id);
-if(!v)return;
-v.photo=r.result;
-persist();
-editVehicle(id);
-};
-r.readAsDataURL(file);
 }
 
 function renameVehicle(id){
@@ -651,7 +596,6 @@ updateCarDisplay();
 function addVehicle(){
 const name=prompt('Название нового автомобиля');
 if(!name||!name.trim())return;
-
 const id='car'+Date.now();
 data.vehicles.push({
 id,
@@ -670,12 +614,10 @@ renderCars();
 
 function renderHistory(){
 const el=document.getElementById('historyList');
-
 if(!data.shifts.length){
 el.innerHTML='<div class="empty">Пока нет сохранённых смен.<br>После первой смены она появится здесь.</div>';
 return;
 }
-
 el.innerHTML=data.shifts.map(s=>`
 <div class="history-card">
 <div class="history-top">
@@ -713,13 +655,10 @@ return `${day}.${m}.${y}`;
 function editShift(id){
 const s=data.shifts.find(x=>x.id===id);
 if(!s)return;
-
 saveDraft();
-
 data.selectedVehicle=s.vehicleId;
 data.season=s.season;
 data.editingId=id;
-
 const map={
 shiftDate:s.date,
 fuelStart:s.fuelStart,
@@ -731,18 +670,14 @@ roadKm:s.roadKm,
 idleHours:Math.floor(s.idleHours||0),
 idleMinutes:Math.round(((s.idleHours||0)%1)*60)
 };
-
 Object.entries(map).forEach(([k,v])=>{
 document.getElementById(k).value=v??'';
 });
-
 updateCarDisplay();
 calculate();
-
 const button=document.getElementById('saveButton');
 button.textContent='Сохранить изменения';
 button.onclick=saveShift;
-
 showPage('shift');
 }
 
