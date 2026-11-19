@@ -1,11 +1,855 @@
 
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="Мой ГСМ — расчёт топлива за смену">
+<link rel="manifest" href="manifest.json">
+<title>Мой ГСМ</title>
+<style>
+:root{--bg:#101827;--panel:#1b293c;--panel2:#24354b;--line:#35465d;--text:#f3f7fc;--muted:#aab8cc;--blue:#3289e6;--blue2:#65b5ff;--green:#56d49a;--red:#ff8585;--radius:19px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 calc(86px + env(safe-area-inset-bottom))}
+button,input,select{font:inherit}
+button{cursor:pointer}
+header{padding:20px 18px 12px;display:flex;justify-content:space-between;align-items:center;max-width:760px;margin:auto}
+h1{font-size:26px;margin:0;font-weight:800;letter-spacing:-.5px}
+.sub{font-size:12px;color:var(--muted);margin-top:4px}
+.logo{width:44px;height:44px;border-radius:14px;background:#263a55;display:grid;place-items:center;font-size:23px}
+main{max-width:760px;margin:auto;padding:0 14px}
+.page{display:none}
+.page.active{display:block}
+.card{background:var(--panel);border:1px solid rgba(255,255,255,.035);border-radius:var(--radius);padding:16px;margin:10px 0}
+.section-title{font-size:16px;font-weight:750;margin:0 0 13px}
+.label{display:block;color:var(--muted);font-size:12px;font-weight:650;margin:0 0 7px}
+input,select{width:100%;height:56px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);color:var(--text);padding:0 14px;font-size:18px;outline:none;min-width:0}
+input:focus,select:focus{border-color:var(--blue2);box-shadow:0 0 0 2px #3289e633}
+input::placeholder{color:#8494aa}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.field{min-width:0;width:100%}
+.field.full{grid-column:1/-1}
+#shiftDate{display:block;width:100%;max-width:100%;min-width:0;padding:0 8px;font-size:16px}
+.row{display:flex;gap:10px;align-items:center}
+.between{justify-content:space-between}
+.car-select{display:grid;grid-template-columns:minmax(0,1fr) 24px;gap:10px;align-items:center}
+.car-name{font-size:18px;font-weight:800;overflow-wrap:anywhere}
+.hint{color:var(--muted);font-size:12px;margin-top:5px}
+.pill{display:inline-block;background:#263e5b;color:#9bd0ff;border-radius:30px;padding:6px 10px;font-size:12px;font-weight:700}
+.seasons{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.season{height:48px;border-radius:13px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-weight:700}
+.season.active{background:#174c80;border-color:#398fe4;color:white}
+.readonly{background:#142235;color:#b9c8da}
+.result{background:linear-gradient(135deg,#1b354d,#1b293c);border:1px solid #34536d}
+.result-number{font-size:32px;font-weight:850;letter-spacing:-1px;color:var(--green);margin-top:4px}
+.result-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #ffffff12;font-size:14px}
+.result-row:last-child{border:0}
+.notice{font-size:12px;padding:10px 12px;border-radius:12px;background:#332d20;color:#ffdc9a;margin-top:10px}
+.notice.error{background:#3b252b;color:#ffb4b4}
+.primary{width:100%;height:58px;border:0;border-radius:15px;background:var(--blue);color:white;font-weight:800;font-size:17px;margin:12px 0 5px}
+.secondary{height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:700}
+.secondary:disabled{opacity:.55;cursor:default}
+.danger{color:#ffaaaa;border-color:#75404a}
+nav{position:fixed;bottom:0;left:0;right:0;background:#121f30f2;backdrop-filter:blur(16px);border-top:1px solid #ffffff13;padding:9px 8px calc(9px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);z-index:10}
+nav button{background:none;border:0;color:#91a2b8;font-size:11px;font-weight:650;display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px 0}
+nav button .ico{font-size:20px}
+nav button.active{color:var(--blue2)}
+.vehicle-card,.history-card{background:var(--panel);border:1px solid #ffffff10;border-radius:18px;padding:12px;margin:10px 0}
+.vehicle-actions{display:flex;gap:8px;margin-top:12px}
+.vehicle-actions button{flex:1;min-width:0}
+.small{font-size:12px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:#0009;display:none;align-items:flex-end;z-index:30}
+.modal.show{display:flex}
+.sheet{background:#17263a;border-radius:22px 22px 0 0;padding:20px 16px calc(22px + env(safe-area-inset-bottom));width:100%;max-height:88vh;overflow:auto;border-top:1px solid #52647b}
+.sheet h2{margin:0 0 16px}
+.setting-row{margin:12px 0}
+.history-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.history-stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.history-stat div{background:#24354b;border-radius:12px;padding:10px}
+.history-stat b{display:block;font-size:18px;margin-top:4px}
+.empty{text-align:center;color:var(--muted);padding:35px 15px}
+@media(max-width:380px){
+main{padding:0 10px}
+.card{padding:13px}
+#shiftDate{font-size:14px;padding:0 5px}
+}
+@media(min-width:600px){
+main{padding:0 22px}
+.card{padding:20px}
+.vehicle-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+}
+</style>
+</head>
+<body>
+
+<header>
+<div><h1>Мой ГСМ</h1><div class="sub">Расчёт топлива за смену</div></div>
+<div class="logo">⛽</div>
+</header>
+
+<main>
+<section id="page-shift" class="page active">
+
 <div class="card">
-  <div class="section-title">Обновление приложения</div>
-  <p class="small" id="updateStatus">
-    Нажми кнопку, чтобы проверить наличие новой версии.
-  </p>
-  <button class="secondary" id="updateButton"
-    style="width:100%" onclick="checkForUpdates()">
-    ↻ Проверить обновления
-  </button>
+<div class="section-title">Автомобиль</div>
+<div class="car-select" id="carSelect" role="button" tabindex="0" onclick="openCarPicker()">
+<div>
+<div class="car-name" id="selectedCarName">Sollers Atlant</div>
+<div class="hint">Нажми, чтобы выбрать автомобиль</div>
 </div>
+<div>⌄</div>
+</div>
+<div style="height:14px"></div>
+<div class="label">Сезон</div>
+<div class="seasons">
+<button class="season" id="summerBtn" onclick="setSeason('summer')">☀️ Лето</button>
+<button class="season" id="winterBtn" onclick="setSeason('winter')">❄️ Зима</button>
+</div>
+</div>
+
+<div class="card">
+<div class="section-title">Данные смены</div>
+<div class="grid">
+<div class="field full">
+<label class="label" for="shiftDate">Дата смены</label>
+<input id="shiftDate" type="date">
+</div>
+<div class="field"><label class="label" for="fuelStart">Остаток до смены, л</label><input id="fuelStart" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,0"></div>
+<div class="field"><label class="label" for="fuelAdded">Заправлено, л</label><input id="fuelAdded" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,0"></div>
+<div class="field"><label class="label" for="odoStart">Одометр до смены, км</label><input id="odoStart" type="number" inputmode="numeric" step="1" min="0" placeholder="0"></div>
+<div class="field"><label class="label" for="odoEnd">Одометр после смены, км</label><input id="odoEnd" type="number" inputmode="numeric" step="1" min="0" placeholder="0"></div>
+<div class="field"><label class="label" for="cityKm">По городу, км</label><input id="cityKm" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0"></div>
+<div class="field"><label class="label" for="roadKm">За городом, км</label><input id="roadKm" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0"></div>
+<div class="field"><label class="label" for="idleHours">Простой — часы</label><input id="idleHours" type="number" inputmode="numeric" step="1" min="0" placeholder="0"></div>
+<div class="field"><label class="label" for="idleMinutes">Простой — минуты</label><input id="idleMinutes" type="number" inputmode="numeric" step="1" min="0" max="59" placeholder="0"></div>
+</div>
+<div id="mileageNotice"></div>
+</div>
+
+<div class="card result">
+<div class="section-title">Итог расчёта</div>
+<div class="result-row"><span>Пробег по одометру</span><b id="totalOdo">— км</b></div>
+<div class="result-row"><span>Расход по городу</span><b id="cityUse">— л</b></div>
+<div class="result-row"><span>Расход за городом</span><b id="roadUse">— л</b></div>
+<div class="result-row"><span>Расход на простой</span><b id="idleUse">— л</b></div>
+<div class="result-row"><span><b>Общий расход по норме</b></span><b id="totalUse">— л</b></div>
+<div class="small" style="margin-top:15px">Расчётный остаток топлива</div>
+<div class="result-number" id="fuelEnd">— л</div>
+<div class="small">Остаток рассчитан по нормам, не является фактическим замером в баке.</div>
+<div id="calcNotice"></div>
+</div>
+
+<button class="primary" id="saveButton" onclick="saveShift()">Сохранить смену</button>
+<div class="small" style="text-align:center;padding:4px 0 16px">Черновик сохраняется автоматически на этом устройстве</div>
+</section>
+
+<section id="page-cars" class="page">
+<div class="row between" style="padding:10px 2px">
+<h2 style="margin:0">Мои автомобили</h2>
+<button class="secondary" onclick="addVehicle()">＋ Добавить</button>
+</div>
+<div id="vehicleList" class="vehicle-grid"></div>
+</section>
+
+<section id="page-history" class="page">
+<h2 style="margin:10px 2px 14px">История смен</h2>
+<div id="historyList"></div>
+</section>
+
+<section id="page-settings" class="page">
+<h2 style="margin:10px 2px 14px">Настройки</h2>
+
+<div class="card">
+<div class="section-title">Общие параметры</div>
+<label class="label" for="defaultIdle">Простой по умолчанию, л/час</label>
+<input id="defaultIdle" type="number" inputmode="decimal" step="0.01" min="0" value="0.9">
+<p class="small">Это значение можно отдельно изменить в настройках каждого автомобиля.</p>
+</div>
+
+<div class="card">
+<div class="section-title">Обновление приложения</div>
+<p class="small" id="updateStatus">Нажми кнопку, чтобы проверить наличие новой версии.</p>
+<button class="secondary" id="updateButton" style="width:100%" onclick="checkForUpdates()">↻ Проверить обновления</button>
+</div>
+
+<div class="card">
+<div class="section-title">Данные приложения</div>
+<p class="small">Все автомобили, нормы, история и черновики хранятся в памяти браузера на этом устройстве.</p>
+<button class="secondary danger" onclick="resetAll()">Сбросить все данные</button>
+</div>
+</section>
+</main>
+
+<nav>
+<button class="active" data-page="shift" onclick="showPage('shift',this)"><span class="ico">🧮</span>Смена</button>
+<button data-page="cars" onclick="showPage('cars',this)"><span class="ico">🚐</span>Автомобили</button>
+<button data-page="history" onclick="showPage('history',this)"><span class="ico">🕘</span>История</button>
+<button data-page="settings" onclick="showPage('settings',this)"><span class="ico">⚙️</span>Настройки</button>
+</nav>
+
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+<div class="sheet" id="sheet"></div>
+</div>
+
+<script>
+const STORE='moyGsm_v1';
+
+const defaultData={
+vehicles:[
+{id:'sollers',name:'Sollers Atlant',kind:'sollers',idle:0.9,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''},
+{id:'ford',name:'Ford Transit',kind:'ford',idle:0.9,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''},
+{id:'sobol',name:'ГАЗ Соболь',kind:'sobol',idle:0.9,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''}
+],
+shifts:[],
+selectedVehicle:'sollers',
+season:'winter',
+globalIdle:0.9,
+drafts:{},
+draft:null,
+editingId:null
+};
+
+let data=load();
+
+function load(){
+try{
+const saved=JSON.parse(localStorage.getItem(STORE)||'{}');
+const result={...structuredClone(defaultData),...saved};
+result.vehicles=Array.isArray(result.vehicles)?result.vehicles:structuredClone(defaultData.vehicles);
+result.shifts=Array.isArray(result.shifts)?result.shifts:[];
+result.drafts=result.drafts||{};
+if(result.draft&&!Object.keys(result.drafts).length){
+result.drafts[result.draft.vehicle||result.selectedVehicle]=result.draft;
+}
+result.vehicles=result.vehicles.map(v=>({
+...v,
+norms:{
+summer:{city:'',road:'',...(v.norms?.summer||{})},
+winter:{city:'',road:'',...(v.norms?.winter||{})}
+}
+}));
+return result;
+}catch(e){
+return structuredClone(defaultData);
+}
+}
+
+function persist(){
+localStorage.setItem(STORE,JSON.stringify(data));
+}
+
+function num(id){
+const v=parseFloat((document.getElementById(id)?.value||'').replace(',','.'));
+return Number.isFinite(v)?v:0;
+}
+
+function val(id){
+return document.getElementById(id)?.value||'';
+}
+
+function fmt(n){
+return Number.isFinite(n)?n.toLocaleString('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:2}):'—';
+}
+
+function roundToTenth(n){
+return Math.round((n+Number.EPSILON)*10)/10;
+}
+
+function fmtTenth(n){
+return Number.isFinite(n)?n.toLocaleString('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:1}):'—';
+}
+
+function currentCar(){
+return data.vehicles.find(v=>v.id===data.selectedVehicle)||data.vehicles[0];
+}
+
+function todayString(){
+const d=new Date();
+return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function init(){
+document.getElementById('shiftDate').value=todayString();
+document.getElementById('defaultIdle').value=data.globalIdle??0.9;
+
+document.querySelectorAll('#page-shift input').forEach(el=>{
+el.addEventListener('input',()=>{
+saveDraft();
+calculate();
+});
+});
+
+restoreDraft(data.selectedVehicle);
+updateCarDisplay();
+calculate();
+renderCars();
+renderHistory();
+setSeason(data.season||'winter');
+}
+
+function showPage(p,btn){
+document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+document.getElementById('page-'+p).classList.add('active');
+document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+(btn||document.querySelector(`nav [data-page="${p}"]`)).classList.add('active');
+if(p==='cars')renderCars();
+if(p==='history')renderHistory();
+}
+
+function setSeason(s){
+data.season=s;
+persist();
+document.getElementById('summerBtn').classList.toggle('active',s==='summer');
+document.getElementById('winterBtn').classList.toggle('active',s==='winter');
+calculate();
+saveDraft();
+}
+
+function updateCarDisplay(){
+const v=currentCar();
+if(!v)return;
+document.getElementById('selectedCarName').textContent=v.name;
+document.getElementById('summerBtn').classList.toggle('active',data.season==='summer');
+document.getElementById('winterBtn').classList.toggle('active',data.season==='winter');
+}
+
+function openModal(html){
+document.getElementById('sheet').innerHTML=html;
+document.getElementById('modal').classList.add('show');
+}
+
+function closeModal(){
+document.getElementById('modal').classList.remove('show');
+}
+
+function openCarPicker(){
+openModal(`
+<h2>Выбрать автомобиль</h2>
+${data.vehicles.map(v=>`
+<div class="vehicle-card" onclick="chooseCar('${v.id}');closeModal()">
+<div class="car-name">${esc(v.name)}</div>
+</div>`).join('')}
+<button class="secondary" style="width:100%;margin-top:8px" onclick="closeModal()">Отмена</button>
+`);
+}
+
+function chooseCar(id){
+if(!data.vehicles.some(v=>v.id===id))return;
+saveDraft();
+data.selectedVehicle=id;
+data.editingId=null;
+document.getElementById('saveButton').textContent='Сохранить смену';
+document.getElementById('saveButton').onclick=saveShift;
+restoreDraft(id);
+updateCarDisplay();
+calculate();
+persist();
+}
+
+function getShiftFields(){
+const fields={};
+document.querySelectorAll('#page-shift input').forEach(el=>{
+fields[el.id]=el.value;
+});
+return fields;
+}
+
+function saveDraft(){
+if(data.editingId)return;
+data.drafts=data.drafts||{};
+data.drafts[data.selectedVehicle]={
+fields:getShiftFields(),
+vehicle:data.selectedVehicle,
+season:data.season
+};
+persist();
+}
+
+function restoreDraft(vehicleId){
+const draft=data.drafts?.[vehicleId];
+const fields=draft?.fields||{};
+document.querySelectorAll('#page-shift input').forEach(el=>{
+if(el.id==='shiftDate'){
+el.value=fields[el.id]||todayString();
+}else{
+el.value=fields[el.id]??'';
+}
+});
+data.season=draft?.season||'winter';
+document.getElementById('summerBtn').classList.toggle('active',data.season==='summer');
+document.getElementById('winterBtn').classList.toggle('active',data.season==='winter');
+}
+
+function calculate(){
+const v=currentCar();
+if(!v)return {};
+
+const n=v.norms[data.season]||{city:'',road:''};
+const cityKm=num('cityKm');
+const roadKm=num('roadKm');
+const odoA=val('odoStart')===''?null:num('odoStart');
+const odoB=val('odoEnd')===''?null:num('odoEnd');
+const totalKm=odoA!==null&&odoB!==null?odoB-odoA:null;
+const cityRate=parseFloat(n.city)||0;
+const roadRate=parseFloat(n.road)||0;
+const idleRate=parseFloat(v.idle??0.9);
+
+const cityRaw=cityKm*cityRate/100;
+const roadRaw=roadKm*roadRate/100;
+const cityUse=roundToTenth(cityRaw);
+const roadUse=roundToTenth(roadRaw);
+
+const idleHours=num('idleHours')+num('idleMinutes')/60;
+const idleUse=idleHours*idleRate;
+const total=cityUse+roadUse+idleUse;
+
+const enough=val('fuelStart')!==''&&val('fuelAdded')!=='';
+const end=enough?num('fuelStart')+num('fuelAdded')-total:null;
+
+document.getElementById('totalOdo').textContent=totalKm===null?'— км':fmt(totalKm)+' км';
+document.getElementById('cityUse').textContent=fmtTenth(cityUse)+' л';
+document.getElementById('roadUse').textContent=fmtTenth(roadUse)+' л';
+document.getElementById('idleUse').textContent=fmt(idleUse)+' л';
+document.getElementById('totalUse').textContent=fmt(total)+' л';
+document.getElementById('fuelEnd').textContent=end===null?'— л':fmt(end)+' л';
+
+let msg='';
+if(totalKm!==null&&totalKm<0){
+msg='<div class="notice error">Ошибка: конечный одометр меньше начального.</div>';
+}else if(totalKm!==null&&Math.abs(totalKm-cityKm-roadKm)>0.01){
+msg=`<div class="notice">Проверка пробега: по одометру ${fmt(totalKm)} км, по маршруту ${fmt(cityKm+roadKm)} км. Разница ${fmt(Math.abs(totalKm-cityKm-roadKm))} км.</div>`;
+}
+document.getElementById('mileageNotice').innerHTML=msg;
+
+let warnings=[];
+if(!n.city||!n.road){
+warnings.push('Заполни нормы города и загорода для выбранного автомобиля и сезона.');
+}
+if(end!==null&&end<0){
+warnings.push('Расчётный остаток получился отрицательным — проверь введённые данные и нормы.');
+}
+document.getElementById('calcNotice').innerHTML=warnings.map(w=>`<div class="notice">${w}</div>`).join('');
+
+return {cityUse,roadUse,idleUse,total,end,totalKm,cityKm,roadKm,idleHours};
+}
+
+function buildShift(){
+const c=calculate();
+const v=currentCar();
+const n=v.norms[data.season];
+
+if(!val('shiftDate')){
+alert('Укажи дату смены.');
+return null;
+}
+if(val('fuelStart')===''||val('fuelAdded')===''){
+alert('Укажи начальный остаток и количество заправленного топлива.');
+return null;
+}
+if(num('fuelStart')<0||num('fuelAdded')<0){
+alert('Количество топлива не может быть отрицательным.');
+return null;
+}
+if(val('odoStart')!==''&&val('odoEnd')!==''&&c.totalKm<0){
+alert('Конечный одометр не может быть меньше начального.');
+return null;
+}
+if(num('idleMinutes')>59){
+alert('Минуты простоя не могут превышать 59.');
+return null;
+}
+if(c.totalKm!==null&&Math.abs(c.totalKm-(c.cityKm+c.roadKm))>0.01){
+if(!confirm('Пробег по одометру не совпадает с суммой городского и загородного. Всё равно сохранить?'))return null;
+}
+if(!n.city||!n.road){
+if(!confirm('Не все нормы расхода заполнены. Сохранить смену с текущим расчётом?'))return null;
+}
+
+return {
+date:val('shiftDate'),
+vehicleId:v.id,
+vehicleName:v.name,
+season:data.season,
+fuelStart:num('fuelStart'),
+fuelAdded:num('fuelAdded'),
+odoStart:val('odoStart'),
+odoEnd:val('odoEnd'),
+cityKm:c.cityKm,
+roadKm:c.roadKm,
+idleHours:c.idleHours,
+cityUse:c.cityUse,
+roadUse:c.roadUse,
+idleUse:c.idleUse,
+totalUse:c.total,
+fuelEnd:c.end,
+totalKm:c.totalKm,
+norms:{...n},
+idleRate:v.idle
+};
+}
+
+function saveShift(){
+const shift=buildShift();
+if(!shift)return;
+
+if(data.editingId){
+const ix=data.shifts.findIndex(s=>s.id===data.editingId);
+if(ix>=0){
+shift.id=data.editingId;
+data.shifts[ix]=shift;
+}else{
+shift.id=Date.now().toString();
+data.shifts.unshift(shift);
+}
+}else{
+shift.id=Date.now().toString();
+data.shifts.unshift(shift);
+}
+
+data.editingId=null;
+data.drafts[data.selectedVehicle]=null;
+persist();
+resetForm();
+renderHistory();
+document.getElementById('saveButton').textContent='Сохранить смену';
+document.getElementById('saveButton').onclick=saveShift;
+alert('Смена сохранена.');
+showPage('shift');
+}
+
+function resetForm(){
+document.querySelectorAll('#page-shift input').forEach(el=>el.value='');
+document.getElementById('shiftDate').value=todayString();
+data.editingId=null;
+calculate();
+saveDraft();
+}
+
+function renderCars(){
+document.getElementById('vehicleList').innerHTML=data.vehicles.map(v=>`
+<div class="vehicle-card">
+<div class="row between">
+<div class="car-name">${esc(v.name)}</div>
+<span class="pill">2 сезона</span>
+</div>
+<div class="small" style="margin-top:5px">Летние и зимние нормы расхода</div>
+<div class="vehicle-actions">
+<button class="secondary" onclick="editVehicle('${v.id}')">Настроить</button>
+<button class="secondary" onclick="renameVehicle('${v.id}')">Название</button>
+</div>
+</div>`).join('');
+}
+
+function editVehicle(id){
+const v=data.vehicles.find(x=>x.id===id);
+if(!v)return;
+
+openModal(`
+<h2>Нормы: ${esc(v.name)}</h2>
+<div class="setting-row">
+<div class="section-title">Лето, л/100 км</div>
+<div class="grid">
+<div><label class="label">По городу</label><input id="sCity" type="number" step=".01" min="0" value="${v.norms.summer.city}"></div>
+<div><label class="label">За городом</label><input id="sRoad" type="number" step=".01" min="0" value="${v.norms.summer.road}"></div>
+</div>
+</div>
+<div class="setting-row">
+<div class="section-title">Зима, л/100 км</div>
+<div class="grid">
+<div><label class="label">По городу</label><input id="wCity" type="number" step=".01" min="0" value="${v.norms.winter.city}"></div>
+<div><label class="label">За городом</label><input id="wRoad" type="number" step=".01" min="0" value="${v.norms.winter.road}"></div>
+</div>
+</div>
+<div class="setting-row">
+<label class="label">Простой, л/час</label>
+<input id="vIdle" type="number" step=".01" min="0" value="${v.idle??0.9}">
+</div>
+<button class="primary" onclick="saveVehicle('${id}')">Сохранить настройки</button>
+<button class="secondary" style="width:100%" onclick="closeModal()">Отмена</button>
+`);
+}
+
+function saveVehicle(id){
+const v=data.vehicles.find(x=>x.id===id);
+if(!v)return;
+const values=['sCity','sRoad','wCity','wRoad','vIdle'];
+for(const key of values){
+const el=document.getElementById(key);
+if(el&&el.value!==''&&Number(el.value)<0){
+alert('Нормы расхода не могут быть отрицательными.');
+return;
+}
+}
+v.norms.summer={
+city:document.getElementById('sCity').value,
+road:document.getElementById('sRoad').value
+};
+v.norms.winter={
+city:document.getElementById('wCity').value,
+road:document.getElementById('wRoad').value
+};
+v.idle=parseFloat(document.getElementById('vIdle').value)||0;
+persist();
+closeModal();
+renderCars();
+updateCarDisplay();
+calculate();
+}
+
+function renameVehicle(id){
+const v=data.vehicles.find(x=>x.id===id);
+if(!v)return;
+const n=prompt('Название автомобиля',v.name);
+if(n&&n.trim()){
+v.name=n.trim();
+persist();
+renderCars();
+updateCarDisplay();
+}
+}
+
+function addVehicle(){
+const name=prompt('Название нового автомобиля');
+if(!name||!name.trim())return;
+const id='car'+Date.now();
+data.vehicles.push({
+id,
+name:name.trim(),
+kind:'van',
+idle:data.globalIdle??0.9,
+norms:{
+summer:{city:'',road:''},
+winter:{city:'',road:''}
+},
+photo:''
+});
+persist();
+renderCars();
+}
+
+function renderHistory(){
+const el=document.getElementById('historyList');
+if(!data.shifts.length){
+el.innerHTML='<div class="empty">Пока нет сохранённых смен.<br>После первой смены она появится здесь.</div>';
+return;
+}
+el.innerHTML=data.shifts.map(s=>`
+<div class="history-card">
+<div class="history-top">
+<b>${formatDate(s.date)}</b>
+<span class="pill">${s.season==='winter'?'Зима':'Лето'}</span>
+</div>
+<div class="small" style="margin-top:5px">${esc(s.vehicleName)}</div>
+<div class="history-stat">
+<div><span class="small">Пробег</span><b>${s.totalKm===null?'—':fmt(s.totalKm)+' км'}</b></div>
+<div><span class="small">Расход</span><b>${fmt(s.totalUse)} л</b></div>
+<div><span class="small">Город</span><b>${fmtTenth(Number(s.cityUse)||0)} л</b></div>
+<div><span class="small">Загород</span><b>${fmtTenth(Number(s.roadUse)||0)} л</b></div>
+<div style="grid-column:1/-1">
+<span class="small">Расход на простой</span>
+<b>${fmt(s.idleUse)} л</b>
+</div>
+<div style="grid-column:1/-1">
+<span class="small">Расчётный остаток</span>
+<b style="color:var(--green)">${fmt(s.fuelEnd)} л</b>
+</div>
+</div>
+<div class="vehicle-actions">
+<button class="secondary" onclick="editShift('${s.id}')">Изменить</button>
+<button class="secondary danger" onclick="deleteShift('${s.id}')">Удалить</button>
+</div>
+</div>`).join('');
+}
+
+function formatDate(d){
+if(!d)return 'Без даты';
+const [y,m,day]=d.split('-');
+return `${day}.${m}.${y}`;
+}
+
+function editShift(id){
+const s=data.shifts.find(x=>x.id===id);
+if(!s)return;
+saveDraft();
+data.selectedVehicle=s.vehicleId;
+data.season=s.season;
+data.editingId=id;
+const map={
+shiftDate:s.date,
+fuelStart:s.fuelStart,
+fuelAdded:s.fuelAdded,
+odoStart:s.odoStart,
+odoEnd:s.odoEnd,
+cityKm:s.cityKm,
+roadKm:s.roadKm,
+idleHours:Math.floor(s.idleHours||0),
+idleMinutes:Math.round(((s.idleHours||0)%1)*60)
+};
+Object.entries(map).forEach(([k,v])=>{
+document.getElementById(k).value=v??'';
+});
+updateCarDisplay();
+calculate();
+const button=document.getElementById('saveButton');
+button.textContent='Сохранить изменения';
+button.onclick=saveShift;
+showPage('shift');
+}
+
+function deleteShift(id){
+if(!confirm('Удалить эту смену?'))return;
+data.shifts=data.shifts.filter(s=>s.id!==id);
+persist();
+renderHistory();
+}
+
+function saveGlobalIdle(){
+const value=parseFloat(val('defaultIdle'));
+if(!Number.isFinite(value)||value<0){
+alert('Укажи корректное значение.');
+document.getElementById('defaultIdle').value=data.globalIdle;
+return;
+}
+data.globalIdle=value;
+persist();
+}
+
+function resetAll(){
+if(!confirm('Удалить все автомобили, нормы, историю и черновики? Это действие нельзя отменить.'))return;
+localStorage.removeItem(STORE);
+data=structuredClone(defaultData);
+location.reload();
+}
+
+function esc(s){
+return String(s??'').replace(/[&<>"']/g,c=>({
+'&':'&amp;',
+'<':'&lt;',
+'>':'&gt;',
+'"':'&quot;',
+"'":'&#39;'
+}[c]));
+}
+
+// ------------------------------------
+// ОБНОВЛЕНИЕ ПРИЛОЖЕНИЯ
+// ------------------------------------
+
+let updateReloadStarted=false;
+
+function reloadAfterUpdate(){
+if(updateReloadStarted)return;
+updateReloadStarted=true;
+
+const status=document.getElementById('updateStatus');
+if(status){
+status.textContent='Обновление установлено. Перезапускаем приложение…';
+}
+
+location.reload();
+}
+
+async function checkForUpdates(){
+const button=document.getElementById('updateButton');
+const status=document.getElementById('updateStatus');
+
+if(!button||!status)return;
+
+button.disabled=true;
+button.textContent='Проверяем…';
+status.textContent='Проверяем наличие новой версии…';
+
+try{
+if(!('serviceWorker' in navigator)){
+throw new Error('Service Worker не поддерживается.');
+}
+
+const registration=
+await navigator.serviceWorker.getRegistration('./')||
+await navigator.serviceWorker.register('./sw.js');
+
+let updateFound=false;
+
+const updatePromise=new Promise(resolve=>{
+registration.addEventListener('updatefound',()=>{
+updateFound=true;
+
+const worker=registration.installing;
+
+if(!worker){
+resolve();
+return;
+}
+
+worker.addEventListener('statechange',()=>{
+if(worker.state==='installed'||worker.state==='redundant'){
+resolve();
+}
+});
+});
+});
+
+await registration.update();
+
+if(registration.installing){
+await Promise.race([
+updatePromise,
+new Promise(resolve=>setTimeout(resolve,15000))
+]);
+}
+
+if(registration.waiting){
+status.textContent='Новая версия найдена. Устанавливаем…';
+
+navigator.serviceWorker.addEventListener(
+'controllerchange',
+reloadAfterUpdate,
+{once:true}
+);
+
+registration.waiting.postMessage('SKIP_WAITING');
+
+setTimeout(()=>{
+if(!updateReloadStarted){
+reloadAfterUpdate();
+}
+},5000);
+
+return;
+}
+
+if(registration.installing){
+status.textContent='Обновление загружается. Подожди немного и проверь ещё раз.';
+return;
+}
+
+if(updateFound){
+status.textContent='Обновление подготовлено. Перезапускаем приложение…';
+setTimeout(()=>{
+if(!updateReloadStarted)location.reload();
+},500);
+return;
+}
+
+status.textContent='Проверка завершена. Загружаем актуальную версию…';
+
+setTimeout(()=>{
+location.reload();
+},500);
+
+}catch(error){
+status.textContent='Не удалось проверить обновления. Проверь подключение к интернету и попробуй ещё раз.';
+button.disabled=false;
+button.textContent='↻ Проверить обновления';
+}
+}
+
+init();
+
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
+navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
