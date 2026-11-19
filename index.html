@@ -243,8 +243,14 @@ function fmt(n){
 return Number.isFinite(n)?n.toLocaleString('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:2}):'—';
 }
 
-function roundLitres(n){
-return Math.floor(n+0.5);
+// Город и трасса: округление до десятых.
+// 7,46 -> 7,5; 8,64 -> 8,6; 8,96 -> 9,0.
+function roundToTenth(n){
+return Math.round((n+Number.EPSILON)*10)/10;
+}
+
+function fmtTenth(n){
+return Number.isFinite(n)?n.toLocaleString('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:1}):'—';
 }
 
 function currentCar(){
@@ -381,19 +387,28 @@ const totalKm=odoA!==null&&odoB!==null?odoB-odoA:null;
 const cityRate=parseFloat(n.city)||0;
 const roadRate=parseFloat(n.road)||0;
 const idleRate=parseFloat(v.idle??0.9);
+
 const cityRaw=cityKm*cityRate/100;
 const roadRaw=roadKm*roadRate/100;
-const cityUse=roundLitres(cityRaw);
-const roadUse=roundLitres(roadRaw);
+
+// Округляем только городской и загородный расход до десятых.
+const cityUse=roundToTenth(cityRaw);
+const roadUse=roundToTenth(roadRaw);
+
+// Простой оставляем точным, без округления.
 const idleHours=num('idleHours')+num('idleMinutes')/60;
 const idleUse=idleHours*idleRate;
+
+// Общий расход складывается из округлённых города и трассы
+// и точного расхода на простой.
 const total=cityUse+roadUse+idleUse;
+
 const enough=val('fuelStart')!==''&&val('fuelAdded')!=='';
 const end=enough?num('fuelStart')+num('fuelAdded')-total:null;
 
 document.getElementById('totalOdo').textContent=totalKm===null?'— км':fmt(totalKm)+' км';
-document.getElementById('cityUse').textContent=cityUse+' л';
-document.getElementById('roadUse').textContent=roadUse+' л';
+document.getElementById('cityUse').textContent=fmtTenth(cityUse)+' л';
+document.getElementById('roadUse').textContent=fmtTenth(roadUse)+' л';
 document.getElementById('idleUse').textContent=fmt(idleUse)+' л';
 document.getElementById('totalUse').textContent=fmt(total)+' л';
 document.getElementById('fuelEnd').textContent=end===null?'— л':fmt(end)+' л';
@@ -628,8 +643,8 @@ el.innerHTML=data.shifts.map(s=>`
 <div class="history-stat">
 <div><span class="small">Пробег</span><b>${s.totalKm===null?'—':fmt(s.totalKm)+' км'}</b></div>
 <div><span class="small">Расход</span><b>${fmt(s.totalUse)} л</b></div>
-<div><span class="small">Город</span><b>${s.cityUse} л</b></div>
-<div><span class="small">Загород</span><b>${s.roadUse} л</b></div>
+<div><span class="small">Город</span><b>${fmtTenth(Number(s.cityUse)||0)} л</b></div>
+<div><span class="small">Загород</span><b>${fmtTenth(Number(s.roadUse)||0)} л</b></div>
 <div style="grid-column:1/-1">
 <span class="small">Расход на простой</span>
 <b>${fmt(s.idleUse)} л</b>
