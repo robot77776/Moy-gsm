@@ -69,6 +69,13 @@ nav button.active{color:var(--blue2)}
 .history-stat div{background:#24354b;border-radius:12px;padding:10px}
 .history-stat b{display:block;font-size:18px;margin-top:4px}
 .empty{text-align:center;color:var(--muted);padding:35px 15px}
+.ticket-box{margin-top:14px;padding:13px 14px;background:#142235;border:1px solid #354d68;border-radius:15px}
+.ticket-label{font-size:12px;color:var(--muted);font-weight:650}
+.ticket-number{font-size:27px;font-weight:850;color:var(--green);margin-top:4px}
+.ticket-empty{color:var(--red)}
+.ticket-actions{display:flex;gap:8px;margin-top:10px}
+.ticket-actions button{flex:1;min-width:0}
+.ticket-input{margin:8px 0}
 @media(max-width:380px){
 main{padding:0 10px}
 .card{padding:13px}
@@ -100,6 +107,13 @@ main{padding:0 22px}
 </div>
 <div>⌄</div>
 </div>
+
+<div class="ticket-box">
+<div class="ticket-label">ОСТАТОК ПУТЁВОК</div>
+<div class="ticket-number" id="selectedTickets">0 шт.</div>
+<div class="hint" id="ticketHint">Количество путёвок для выбранного автомобиля</div>
+</div>
+
 <div style="height:14px"></div>
 <div class="label">Сезон</div>
 <div class="seasons">
@@ -197,9 +211,9 @@ const STORE='moyGsm_v1';
 
 const defaultData={
 vehicles:[
-{id:'sollers',name:'Sollers Atlant',kind:'sollers',idle:0.9,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''},
-{id:'ford',name:'Ford Transit',kind:'ford',idle:0.9,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''},
-{id:'sobol',name:'ГАЗ Соболь',kind:'sobol',idle:0.9,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''}
+{id:'sollers',name:'Sollers Atlant',kind:'sollers',idle:0.9,tickets:0,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''},
+{id:'ford',name:'Ford Transit',kind:'ford',idle:0.9,tickets:0,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''},
+{id:'sobol',name:'ГАЗ Соболь',kind:'sobol',idle:0.9,tickets:0,norms:{summer:{city:'',road:''},winter:{city:'',road:''}},photo:''}
 ],
 shifts:[],
 selectedVehicle:'sollers',
@@ -224,6 +238,7 @@ result.drafts[result.draft.vehicle||result.selectedVehicle]=result.draft;
 }
 result.vehicles=result.vehicles.map(v=>({
 ...v,
+tickets:Number.isFinite(Number(v.tickets))?Math.max(0,Math.floor(Number(v.tickets))):0,
 norms:{
 summer:{city:'',road:'',...(v.norms?.summer||{})},
 winter:{city:'',road:'',...(v.norms?.winter||{})}
@@ -310,6 +325,11 @@ function updateCarDisplay(){
 const v=currentCar();
 if(!v)return;
 document.getElementById('selectedCarName').textContent=v.name;
+document.getElementById('selectedTickets').textContent=fmt(v.tickets||0)+' шт.';
+document.getElementById('selectedTickets').classList.toggle('ticket-empty',(v.tickets||0)<=0);
+document.getElementById('ticketHint').textContent=(v.tickets||0)>0
+?'После сохранения смены останется '+fmt(v.tickets-1)+' шт.'
+:'Путёвок нет. Пополни остаток в разделе «Автомобили».';
 document.getElementById('summerBtn').classList.toggle('active',data.season==='summer');
 document.getElementById('winterBtn').classList.toggle('active',data.season==='winter');
 }
@@ -329,6 +349,7 @@ openModal(`
 ${data.vehicles.map(v=>`
 <div class="vehicle-card" onclick="chooseCar('${v.id}');closeModal()">
 <div class="car-name">${esc(v.name)}</div>
+<div class="small" style="margin-top:6px">Остаток путёвок: <b style="color:var(--green)">${fmt(v.tickets||0)} шт.</b></div>
 </div>`).join('')}
 <button class="secondary" style="width:100%;margin-top:8px" onclick="closeModal()">Отмена</button>
 `);
@@ -437,6 +458,10 @@ return {cityUse,roadUse,idleUse,total,end,totalKm,cityKm,roadKm,idleHours};
 function buildShift(){
 const c=calculate();
 const v=currentCar();
+if(!v){
+alert('Сначала добавь автомобиль.');
+return null;
+}
 const n=v.norms[data.season];
 
 if(!val('shiftDate')){
@@ -493,6 +518,38 @@ function saveShift(){
 const shift=buildShift();
 if(!shift)return;
 
+const oldShift=data.editingId
+?data.shifts.find(s=>s.id===data.editingId)
+:null;
+
+const oldWasCharged=!!oldShift?.ticketCharged;
+const oldVehicleId=oldShift?.vehicleId||null;
+const newVehicleId=shift.vehicleId;
+const newVehicle=data.vehicles.find(v=>v.id===newVehicleId);
+
+if(!newVehicle){
+alert('Выбранный автомобиль не найден.');
+return;
+}
+
+// Проверяем остаток до внесения любых изменений.
+if(!oldWasCharged||oldVehicleId!==newVehicleId){
+if((newVehicle.tickets||0)<=0){
+alert('У выбранного автомобиля закончились путёвки. Пополни остаток в разделе «Автомобили».');
+return;
+}
+}
+
+// При редактировании возвращаем старую путёвку,
+// затем списываем одну у выбранного автомобиля.
+if(oldWasCharged&&oldVehicleId){
+const oldVehicle=data.vehicles.find(v=>v.id===oldVehicleId);
+if(oldVehicle)oldVehicle.tickets=(oldVehicle.tickets||0)+1;
+}
+
+newVehicle.tickets=Math.max(0,(newVehicle.tickets||0)-1);
+shift.ticketCharged=true;
+
 if(data.editingId){
 const ix=data.shifts.findIndex(s=>s.id===data.editingId);
 if(ix>=0){
@@ -512,9 +569,11 @@ data.drafts[data.selectedVehicle]=null;
 persist();
 resetForm();
 renderHistory();
+renderCars();
+updateCarDisplay();
 document.getElementById('saveButton').textContent='Сохранить смену';
 document.getElementById('saveButton').onclick=saveShift;
-alert('Смена сохранена.');
+alert('Смена сохранена. Одна путёвка списана.');
 showPage('shift');
 }
 
@@ -534,11 +593,84 @@ document.getElementById('vehicleList').innerHTML=data.vehicles.map(v=>`
 <span class="pill">2 сезона</span>
 </div>
 <div class="small" style="margin-top:5px">Летние и зимние нормы расхода</div>
+<div class="ticket-box">
+<div class="ticket-label">ОСТАТОК ПУТЁВОК</div>
+<div class="ticket-number ${(v.tickets||0)<=0?'ticket-empty':''}">${fmt(v.tickets||0)} шт.</div>
+<div class="ticket-actions">
+<button class="secondary" onclick="replenishTickets('${v.id}')">＋ Пополнить</button>
+<button class="secondary" onclick="editTickets('${v.id}')">Изменить</button>
+</div>
+</div>
 <div class="vehicle-actions">
 <button class="secondary" onclick="editVehicle('${v.id}')">Настроить</button>
 <button class="secondary" onclick="renameVehicle('${v.id}')">Название</button>
 </div>
 </div>`).join('');
+}
+
+function replenishTickets(id){
+const v=data.vehicles.find(x=>x.id===id);
+if(!v)return;
+openModal(`
+<h2>Пополнить путёвки</h2>
+<div class="section-title">${esc(v.name)}</div>
+<div class="ticket-box">
+<div class="ticket-label">ТЕКУЩИЙ ОСТАТОК</div>
+<div class="ticket-number">${fmt(v.tickets||0)} шт.</div>
+</div>
+<div class="setting-row">
+<label class="label" for="ticketAmount">Сколько путёвок добавить?</label>
+<input class="ticket-input" id="ticketAmount" type="number" inputmode="numeric" min="1" step="1" placeholder="Например, 10">
+</div>
+<button class="primary" onclick="applyTicketReplenishment('${id}')">Пополнить остаток</button>
+<button class="secondary" style="width:100%" onclick="closeModal()">Отмена</button>
+`);
+}
+
+function applyTicketReplenishment(id){
+const v=data.vehicles.find(x=>x.id===id);
+const amount=Number(document.getElementById('ticketAmount')?.value);
+if(!v)return;
+if(!Number.isInteger(amount)||amount<=0){
+alert('Укажи целое количество больше нуля.');
+return;
+}
+v.tickets=(v.tickets||0)+amount;
+persist();
+closeModal();
+renderCars();
+updateCarDisplay();
+}
+
+function editTickets(id){
+const v=data.vehicles.find(x=>x.id===id);
+if(!v)return;
+openModal(`
+<h2>Изменить остаток</h2>
+<div class="section-title">${esc(v.name)}</div>
+<div class="setting-row">
+<label class="label" for="ticketNewValue">Новое количество путёвок</label>
+<input id="ticketNewValue" type="number" inputmode="numeric" min="0" step="1" value="${v.tickets||0}">
+</div>
+<div class="small">Здесь можно установить фактический остаток вручную.</div>
+<button class="primary" onclick="applyTicketEdit('${id}')">Сохранить остаток</button>
+<button class="secondary" style="width:100%" onclick="closeModal()">Отмена</button>
+`);
+}
+
+function applyTicketEdit(id){
+const v=data.vehicles.find(x=>x.id===id);
+const amount=Number(document.getElementById('ticketNewValue')?.value);
+if(!v)return;
+if(!Number.isInteger(amount)||amount<0){
+alert('Укажи целое число не меньше нуля.');
+return;
+}
+v.tickets=amount;
+persist();
+closeModal();
+renderCars();
+updateCarDisplay();
 }
 
 function editVehicle(id){
@@ -618,6 +750,7 @@ id,
 name:name.trim(),
 kind:'van',
 idle:data.globalIdle??0.9,
+tickets:0,
 norms:{
 summer:{city:'',road:''},
 winter:{city:'',road:''}
@@ -698,10 +831,19 @@ showPage('shift');
 }
 
 function deleteShift(id){
-if(!confirm('Удалить эту смену?'))return;
+const shift=data.shifts.find(s=>s.id===id);
+if(!shift)return;
+if(!confirm('Удалить эту смену? Если по ней списывалась путёвка, она вернётся в остаток.'))return;
+
+if(shift.ticketCharged){
+const vehicle=data.vehicles.find(v=>v.id===shift.vehicleId);
+if(vehicle)vehicle.tickets=(vehicle.tickets||0)+1;
+}
 data.shifts=data.shifts.filter(s=>s.id!==id);
 persist();
 renderHistory();
+renderCars();
+updateCarDisplay();
 }
 
 function saveGlobalIdle(){
